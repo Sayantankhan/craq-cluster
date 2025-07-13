@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package rpcpb;
+
+option go_package = ".;rpcpb";
+
+// gRPC service for CRAQ nodes
+service Node {
+  rpc Write(WriteReq) returns (WriteAck);
+  rpc Read(ReadReq) returns (ReadResponse);
+  rpc QueryVersion(VersionQuery) returns (VersionResponse);
+}
+
+// Sent from client or predecessor replica to head/middle/tail
+message WriteReq {
+  string chunk_id = 1;
+  uint64 seq = 2;
+  string file_name = 3;
+  string path = 4;
+}
+
+// Sent back by the tail when commit succeeds
+message WriteAck {
+  string chunk_id = 1;
+  uint64 seq = 2;
+}
+
+// Request to read a chunk (usually from tail)
+message ReadReq {
+  string chunk_id = 1;
+}
+
+// Carries the latest chunk metadata
+message ReadResponse {
+  string chunk_id = 1;
+  uint64 seq = 2;
+  string file_name = 3;
+  string path = 4;
+}
+
+// Used to fetch version info (used by predecessor replicas)
+message VersionQuery {
+  string chunk_id = 1;
+}
+
+// Carries latest clean version info
+message VersionResponse {
+  string chunk_id = 1;
+  uint64 seq = 2;
+  string file_name = 3;
+  string path = 4;
+}
