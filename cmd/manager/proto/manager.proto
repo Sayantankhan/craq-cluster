@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package managerpb;
+option go_package = ".;managerpb";
+
+service Manager {
+  rpc GetWriteHead(Empty) returns (NodeInfo);
+  rpc GetReadNode(ReadNodeQuery) returns (NodeInfo);
+}
+
+message Empty {}
+
+message ReadNodeQuery {
+  string chunk_id = 1;
+}
+
+message NodeInfo {
+  string node_id = 1;
+  string address = 2;
+}
+
+

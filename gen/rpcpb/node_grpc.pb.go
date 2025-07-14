@@ -19,7 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Node_Write_FullMethodName        = "/rpcpb.Node/Write"
+	Node_StreamWrite_FullMethodName  = "/rpcpb.Node/StreamWrite"
+	Node_StreamRead_FullMethodName   = "/rpcpb.Node/StreamRead"
 	Node_Read_FullMethodName         = "/rpcpb.Node/Read"
 	Node_QueryVersion_FullMethodName = "/rpcpb.Node/QueryVersion"
 )
@@ -30,7 +31,10 @@ const (
 //
 // gRPC service for CRAQ nodes
 type NodeClient interface {
-	Write(ctx context.Context, in *WriteReq, opts ...grpc.CallOption) (*WriteAck, error)
+	// stream
+	StreamWrite(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[StreamWriteReq, WriteAck], error)
+	StreamRead(ctx context.Context, in *StreamReadReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ReadChunk], error)
+	// rpc Write(WriteReq) returns (WriteAck);
 	Read(ctx context.Context, in *ReadReq, opts ...grpc.CallOption) (*ReadResponse, error)
 	QueryVersion(ctx context.Context, in *VersionQuery, opts ...grpc.CallOption) (*VersionResponse, error)
 }
@@ -43,15 +47,37 @@ func NewNodeClient(cc grpc.ClientConnInterface) NodeClient {
 	return &nodeClient{cc}
 }
 
-func (c *nodeClient) Write(ctx context.Context, in *WriteReq, opts ...grpc.CallOption) (*WriteAck, error) {
+func (c *nodeClient) StreamWrite(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[StreamWriteReq, WriteAck], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(WriteAck)
-	err := c.cc.Invoke(ctx, Node_Write_FullMethodName, in, out, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &Node_ServiceDesc.Streams[0], Node_StreamWrite_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &grpc.GenericClientStream[StreamWriteReq, WriteAck]{ClientStream: stream}
+	return x, nil
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Node_StreamWriteClient = grpc.ClientStreamingClient[StreamWriteReq, WriteAck]
+
+func (c *nodeClient) StreamRead(ctx context.Context, in *StreamReadReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ReadChunk], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &Node_ServiceDesc.Streams[1], Node_StreamRead_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[StreamReadReq, ReadChunk]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Node_StreamReadClient = grpc.ServerStreamingClient[ReadChunk]
 
 func (c *nodeClient) Read(ctx context.Context, in *ReadReq, opts ...grpc.CallOption) (*ReadResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -79,7 +105,10 @@ func (c *nodeClient) QueryVersion(ctx context.Context, in *VersionQuery, opts ..
 //
 // gRPC service for CRAQ nodes
 type NodeServer interface {
-	Write(context.Context, *WriteReq) (*WriteAck, error)
+	// stream
+	StreamWrite(grpc.ClientStreamingServer[StreamWriteReq, WriteAck]) error
+	StreamRead(*StreamReadReq, grpc.ServerStreamingServer[ReadChunk]) error
+	// rpc Write(WriteReq) returns (WriteAck);
 	Read(context.Context, *ReadReq) (*ReadResponse, error)
 	QueryVersion(context.Context, *VersionQuery) (*VersionResponse, error)
 	mustEmbedUnimplementedNodeServer()
@@ -92,8 +121,11 @@ type NodeServer interface {
 // pointer dereference when methods are called.
 type UnimplementedNodeServer struct{}
 
-func (UnimplementedNodeServer) Write(context.Context, *WriteReq) (*WriteAck, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Write not implemented")
+func (UnimplementedNodeServer) StreamWrite(grpc.ClientStreamingServer[StreamWriteReq, WriteAck]) error {
+	return status.Errorf(codes.Unimplemented, "method StreamWrite not implemented")
+}
+func (UnimplementedNodeServer) StreamRead(*StreamReadReq, grpc.ServerStreamingServer[ReadChunk]) error {
+	return status.Errorf(codes.Unimplemented, "method StreamRead not implemented")
 }
 func (UnimplementedNodeServer) Read(context.Context, *ReadReq) (*ReadResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Read not implemented")
@@ -122,23 +154,23 @@ func RegisterNodeServer(s grpc.ServiceRegistrar, srv NodeServer) {
 	s.RegisterService(&Node_ServiceDesc, srv)
 }
 
-func _Node_Write_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(WriteReq)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(NodeServer).Write(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Node_Write_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NodeServer).Write(ctx, req.(*WriteReq))
-	}
-	return interceptor(ctx, in, info, handler)
+func _Node_StreamWrite_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(NodeServer).StreamWrite(&grpc.GenericServerStream[StreamWriteReq, WriteAck]{ServerStream: stream})
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Node_StreamWriteServer = grpc.ClientStreamingServer[StreamWriteReq, WriteAck]
+
+func _Node_StreamRead_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(StreamReadReq)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(NodeServer).StreamRead(m, &grpc.GenericServerStream[StreamReadReq, ReadChunk]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Node_StreamReadServer = grpc.ServerStreamingServer[ReadChunk]
 
 func _Node_Read_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ReadReq)
@@ -184,10 +216,6 @@ var Node_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*NodeServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Write",
-			Handler:    _Node_Write_Handler,
-		},
-		{
 			MethodName: "Read",
 			Handler:    _Node_Read_Handler,
 		},
@@ -196,6 +224,17 @@ var Node_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Node_QueryVersion_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "StreamWrite",
+			Handler:       _Node_StreamWrite_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "StreamRead",
+			Handler:       _Node_StreamRead_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "node.proto",
 }

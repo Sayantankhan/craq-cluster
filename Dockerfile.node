@@ -1,0 +1,26 @@
+# Dockerfile.node
+FROM golang:1.23 as builder
+
+WORKDIR /app
+
+# Copy all Go module files first to leverage Docker layer caching
+COPY go.mod go.sum ./
+RUN go mod tidy && go mod download
+
+# Copy the entire source tree
+COPY . .
+
+# Build the node binary
+RUN CGO_ENABLED=0 GOOS=linux go build -o /node ./cmd/node
+
+# Final runtime image
+FROM alpine:latest
+
+# Copy only the binary and config
+COPY --from=builder /node /node
+COPY config/config.json /config/config.json
+
+# Set default node ID (override in docker-compose)
+ENV NODE_ID=n1
+
+ENTRYPOINT ["/node"]

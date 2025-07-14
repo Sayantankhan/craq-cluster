@@ -39,12 +39,14 @@ func main() {
 	}
 
 	// Setup next client if not tail
-	var next *craq.NodeClient
+	var next rpcpb.NodeClient
 	if nextNode != nil {
-		next, err = craq.NewNodeClient(nextNode.Addr)
+		log.Printf("[Init] Dialing next node: %s", nextNode.Addr)
+		conn, err := grpc.Dial(nextNode.Addr, grpc.WithInsecure())
 		if err != nil {
-			log.Fatalf("failed to connect to next node: %v", err)
+			log.Fatalf("dial error: %v", err)
 		}
+		next = rpcpb.NewNodeClient(conn)
 	}
 
 	// Create local node

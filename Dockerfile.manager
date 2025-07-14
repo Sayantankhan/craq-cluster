@@ -1,0 +1,23 @@
+# Dockerfile.manager
+FROM golang:1.23 as builder
+
+WORKDIR /app
+
+# Copy module files first to leverage cache
+COPY go.mod go.sum ./
+RUN go mod tidy && go mod download
+
+# Copy the entire source code
+COPY . .
+
+# Build the manager binary
+RUN CGO_ENABLED=0 GOOS=linux go build -o /manager ./cmd/manager
+
+# Final minimal image
+FROM alpine:latest
+
+# Copy the built binary and config
+COPY --from=builder /manager /manager
+COPY config/config.json /config/config.json
+
+ENTRYPOINT ["/manager"]

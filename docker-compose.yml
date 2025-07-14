@@ -1,0 +1,71 @@
+version: "3.9"
+
+services:
+  manager:
+    build:
+      context: .
+      dockerfile: Dockerfile.manager
+    ports:
+      - "9005:9005"
+    volumes:
+      - ./config:/config
+    networks:
+      - craq-net
+
+  node1:
+    build:
+      context: .
+      dockerfile: Dockerfile.node
+    environment:
+      - NODE_ID=n1
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./config:/config
+    networks:
+      - craq-net
+
+  node2:
+    build:
+      context: .
+      dockerfile: Dockerfile.node
+    environment:
+      - NODE_ID=n2
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./config:/config
+    networks:
+      - craq-net
+
+  node3:
+    build:
+      context: .
+      dockerfile: Dockerfile.node
+    environment:
+      - NODE_ID=n3
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./config:/config
+    networks:
+      - craq-net
+
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    depends_on:
+      - manager
+      - node1
+      - node2
+      - node3
+    networks:
+      - craq-net
+    volumes:
+      - ./data:/data
+    stdin_open: true
+    tty: true
+networks:
+  craq-net:
+    driver: bridge

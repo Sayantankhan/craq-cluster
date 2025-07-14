@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"craq-cluster/cmd/manager/gen/managerpb"
 	"craq-cluster/gen/rpcpb"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -19,68 +21,118 @@ func main() {
 	}
 	filePath := os.Args[1]
 	chunkID := os.Args[2]
-
-	// Step 1: Validate and extract file name
 	fileName := filepath.Base(filePath)
-
-	// Step 2: Store the file to disk location
-	destPath := filepath.Join("/tmp", chunkID)
-	data, err := os.ReadFile(filePath)
-	if err != nil {
-		log.Fatalf("failed to read file: %v", err)
-	}
-	if err := os.WriteFile(destPath, data, 0644); err != nil {
-		log.Fatalf("failed to write file to chunk path: %v", err)
-	}
-
-	// Step 3: Connect to head node (n1) and send metadata
-	writeConn, err := grpc.Dial("localhost:8001", grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatalf("write gRPC dial failed: %v", err)
-	}
-	defer writeConn.Close()
-
-	writeClient := rpcpb.NewNodeClient(writeConn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	writeResp, err := writeClient.Write(ctx, &rpcpb.WriteReq{
-		ChunkId:  chunkID,
-		Seq:      1,
-		FileName: fileName,
-		Path:     destPath,
-	})
+	// Step 1: Connect to Manager
+	mgrConn, err := grpc.Dial("localhost:9000", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		log.Fatalf("Write failed: %v", err)
+		log.Fatalf("❌ Failed to connect to Manager: %v", err)
+	}
+	defer mgrConn.Close()
+
+	mgrClient := managerpb.NewManagerClient(mgrConn)
+
+	// Step 2: Ask Manager for head node
+	writeHead, err := mgrClient.GetWriteHead(ctx, &managerpb.Empty{})
+	if err != nil {
+		log.Fatalf("❌ Manager.GetWriteHead failed: %v", err)
+	}
+	log.Printf("📤 Head node for write: %s (%s)", writeHead.NodeId, writeHead.Address)
+
+	// Step 3: Connect to head node and stream file
+	writeConn, err := grpc.Dial(writeHead.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("❌ Failed to dial write node: %v", err)
+	}
+	defer writeConn.Close()
+
+	writeClient := rpcpb.NewNodeClient(writeConn)
+	writeStream, err := writeClient.StreamWrite(ctx)
+	if err != nil {
+		log.Fatalf("❌ StreamWrite failed: %v", err)
 	}
 
-	log.Printf("✅ Write successful: Chunk=%s, Seq=%d", writeResp.ChunkId, writeResp.Seq)
-
-	// Step 4: Connect to tail node (n3) and request chunk
-	readConn, err := grpc.Dial("localhost:8003", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	file, err := os.Open(filePath)
 	if err != nil {
-		log.Fatalf("read gRPC dial failed: %v", err)
+		log.Fatalf("❌ Failed to open file: %v", err)
+	}
+	defer file.Close()
+
+	const chunkSize = 64 * 1024
+	buf := make([]byte, chunkSize)
+
+	for {
+		n, err := file.Read(buf)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("❌ File read failed: %v", err)
+		}
+
+		err = writeStream.Send(&rpcpb.StreamWriteReq{
+			ChunkId:  chunkID,
+			Seq:      0,
+			FileName: fileName,
+			Path:     "", // server stores to /tmp/{chunkID}
+			Data:     buf[:n],
+		})
+		if err != nil {
+			log.Fatalf("❌ Send chunk failed: %v", err)
+		}
+	}
+	ack, err := writeStream.CloseAndRecv()
+	if err != nil {
+		log.Fatalf("❌ StreamWrite close failed: %v", err)
+	}
+	log.Printf("✅ Write complete: Chunk=%s Seq=%d", ack.ChunkId, ack.Seq)
+
+	// Step 4: Ask manager for read node
+	readResp, err := mgrClient.GetReadNode(ctx, &managerpb.ReadNodeQuery{
+		ChunkId: chunkID,
+	})
+	if err != nil {
+		log.Fatalf("❌ Manager.GetReadNode failed: %v", err)
+	}
+	log.Printf("📥 Read node: %s (%s)", readResp.NodeId, readResp.Address)
+
+	// Step 5: Connect to chosen read node
+	readConn, err := grpc.Dial(readResp.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("❌ Failed to connect to read node: %v", err)
 	}
 	defer readConn.Close()
 
 	readClient := rpcpb.NewNodeClient(readConn)
-
-	readResp, err := readClient.Read(ctx, &rpcpb.ReadReq{
+	readStream, err := readClient.StreamRead(ctx, &rpcpb.StreamReadReq{
 		ChunkId: chunkID,
 	})
 	if err != nil {
-		log.Fatalf("Read failed: %v", err)
+		log.Fatalf("❌ StreamRead failed: %v", err)
 	}
 
-	fmt.Println("✅ Retrieved from tail node:")
-	fmt.Printf("Chunk: %s | Seq: %d\n", readResp.ChunkId, readResp.Seq)
-	fmt.Println("---- File Content ----")
+	var reconstructed []byte
+	chunkNum := 0
+	totalBytes := 0
+	for {
+		chunk, err := readStream.Recv()
+		if err == io.EOF {
+			log.Println("📦 [StreamRead] ✅ All chunks received")
+			break
+		}
+		if err != nil {
+			log.Fatalf("❌ receive chunk failed: %v", err)
+		}
 
-	// Read the file content from the path (since only path is sent back)
-	data, err = os.ReadFile(readResp.Path)
-	if err != nil {
-		log.Fatalf("failed to read content from path %s: %v", readResp.Path, err)
+		chunkNum++
+		totalBytes += len(chunk.Data)
+		log.Printf("📦 Chunk #%d received (%d bytes)", chunkNum, len(chunk.Data))
+		reconstructed = append(reconstructed, chunk.Data...)
 	}
-	fmt.Println(string(data))
+
+	fmt.Println("✅ Final Output:")
+	fmt.Println(string(reconstructed))
 }

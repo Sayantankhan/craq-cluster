@@ -6,9 +6,21 @@ option go_package = ".;rpcpb";
 
 // gRPC service for CRAQ nodes
 service Node {
-  rpc Write(WriteReq) returns (WriteAck);
+  // stream
+  rpc StreamWrite(stream StreamWriteReq) returns (WriteAck);
+  rpc StreamRead(StreamReadReq) returns (stream ReadChunk);
+
+  // rpc Write(WriteReq) returns (WriteAck);
   rpc Read(ReadReq) returns (ReadResponse);
   rpc QueryVersion(VersionQuery) returns (VersionResponse);
+}
+
+message StreamWriteReq {
+  string chunk_id = 1;
+  uint64 seq = 2;
+  string file_name = 3;
+  string path = 4;
+  bytes data = 5; // ✅ REQUIRED to stream file content
 }
 
 // Sent from client or predecessor replica to head/middle/tail
@@ -36,6 +48,14 @@ message ReadResponse {
   uint64 seq = 2;
   string file_name = 3;
   string path = 4;
+}
+
+message StreamReadReq {
+  string chunk_id = 1;
+}
+
+message ReadChunk {
+  bytes data = 1;
 }
 
 // Used to fetch version info (used by predecessor replicas)

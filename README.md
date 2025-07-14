@@ -15,14 +15,16 @@ This project implements a **distributed file storage system** using the **CRAQ p
 - Tail is source of truth and final commit point
 - All nodes write to local disk + update DB metadata
 
-## 🔧 Features
+## ✨ Features
 
-- **Chunked file storage** (e.g., 4MB chunks)
-- **Sequential write propagation** via CRAQ
-- **Versioning with `seq` field** per chunk
-- **CockroachDB-backed metadata store**
-- **Disk-backed data persistence**
-- **gRPC-based client and node communication**
+- ✅ Stream-based file ingestion using gRPC
+- ✅ CRAQ-style head-to-tail chain replication
+- ✅ Dirty/Clean chunk tracking
+- ✅ Manager node for:
+  - Head node discovery (write)
+  - Read node selection (tail preferred, round-robin fallback)
+- ✅ Storage backed by CockroachDB
+- ✅ Simple client library for write/read
 
 ## 📁 Directory Structure
 
@@ -54,7 +56,17 @@ export PATH="$PATH:$(go env GOPATH)/bin"
 ### 2. Generate gRPC code from proto
 
 ```bash
-protoc   --proto_path=proto   --go_out=gen/rpcpb   --go-grpc_out=gen/rpcpb   proto/node.proto
+protoc \
+  --proto_path=proto \
+  --go_out=gen/managerpb \
+  --go-grpc_out=gen/managerpb \
+  proto/manager.proto
+
+protoc \
+  --proto_path=proto \
+  --go_out=gen/rpcpb \
+  --go-grpc_out=gen/rpcpb \
+  proto/node.proto
 ```
 
 ### 3. Build node binary
@@ -92,6 +104,12 @@ go build -o craq-client cmd/client/main.go
 NODE_ID=n1 ./craq-node
 NODE_ID=n2 ./craq-node
 NODE_ID=n3 ./craq-node
+```
+
+### 3. Start Manager
+
+```bash
+./craq-manager
 ```
 
 ## 🧪 Usage

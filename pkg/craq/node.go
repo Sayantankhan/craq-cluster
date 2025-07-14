@@ -5,7 +5,9 @@ import (
 	"craq-cluster/gen/rpcpb"
 	"craq-cluster/pkg/storage"
 	"fmt"
+	"io"
 	"log"
+	"os"
 	"sync"
 )
 
@@ -15,11 +17,11 @@ type Node struct {
 	IsTail  bool
 	Mutex   sync.Mutex
 	Storage storage.StorageClient
-	Prev    *NodeClient
-	Next    *NodeClient
+	Prev    rpcpb.NodeClient
+	Next    rpcpb.NodeClient
 }
 
-func NewNode(id string, isHead, isTail bool, store storage.StorageClient, prev, next *NodeClient) *Node {
+func NewNode(id string, isHead, isTail bool, store storage.StorageClient, prev, next rpcpb.NodeClient) *Node {
 	return &Node{
 		ID:      id,
 		IsHead:  isHead,
@@ -61,7 +63,7 @@ func (n *Node) HandleWrite(req *rpcpb.WriteReq, ack *rpcpb.WriteAck) error {
 	}
 
 	// Not tail: forward to successor
-	nextAck, err := n.Next.Write(context.Background(), req)
+	nextAck, err := n.streamFileToNext(req)
 	if err != nil {
 		return fmt.Errorf("forward Write to successor failed: %w", err)
 	}
@@ -132,4 +134,48 @@ func (n *Node) HandleVersionQuery(req *rpcpb.VersionQuery, resp *rpcpb.VersionRe
 	resp.FileName = chunk.FileName
 	resp.Path = chunk.Path
 	return nil
+}
+
+func (n *Node) streamFileToNext(req *rpcpb.WriteReq) (*rpcpb.WriteAck, error) {
+	stream, err := n.Next.StreamWrite(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("start stream to next node failed: %w", err)
+	}
+
+	file, err := os.Open(req.Path)
+	if err != nil {
+		return nil, fmt.Errorf("open file failed: %w", err)
+	}
+	defer file.Close()
+
+	const chunkSize = 64 * 1024
+	buf := make([]byte, chunkSize)
+
+	for {
+		nBytes, readErr := file.Read(buf)
+		if readErr == io.EOF {
+			break
+		}
+		if readErr != nil {
+			return nil, fmt.Errorf("read file failed: %w", readErr)
+		}
+
+		err = stream.Send(&rpcpb.StreamWriteReq{
+			ChunkId:  req.ChunkId,
+			Seq:      req.Seq,
+			FileName: req.FileName,
+			Path:     req.Path,
+			Data:     buf[:nBytes],
+		})
+		if err != nil {
+			return nil, fmt.Errorf("send chunk failed: %w", err)
+		}
+	}
+
+	ack, err := stream.CloseAndRecv()
+	if err != nil {
+		return nil, fmt.Errorf("stream close failed: %w", err)
+	}
+
+	return ack, nil
 }
