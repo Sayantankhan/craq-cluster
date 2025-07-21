@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -20,46 +21,32 @@ func NewCraqStore(ctx context.Context, dsn string) (*CraqStore, error) {
 		return nil, err
 	}
 
-	_, err = pool.Exec(ctx, `
-		CREATE TABLE IF NOT EXISTS chunk_metadata (
-			chunk_id TEXT PRIMARY KEY,
-			seq BIGINT NOT NULL,
-			state TEXT NOT NULL,
-			file_name TEXT NOT NULL,
-			path TEXT NOT NULL
-		)
-	`)
-	if err != nil {
-		return nil, err
-	}
-
 	return &CraqStore{pool: pool}, nil
 }
 
-func (store *CraqStore) Put(chunkId string, seq uint64, fileName, path string) error {
+func (store *CraqStore) Put(seq uint64, fileName, folder, path string) error {
 	return crdbpgx.ExecuteTx(context.Background(), store.pool, pgx.TxOptions{}, func(tx pgx.Tx) error {
 		_, err := tx.Exec(context.Background(), `
-			INSERT INTO chunk_metadata (chunk_id, seq, state, file_name, path)
-			VALUES ($1, $2, 'dirty', $3, $4)
-			ON CONFLICT (chunk_id) DO UPDATE
+			INSERT INTO chunk_metadata (folder, file_name, seq, state, path)
+			VALUES ($1, $2, $3, 'dirty', $4)
+			ON CONFLICT (folder, file_name) DO UPDATE
 			SET seq = EXCLUDED.seq,
 			    state = 'dirty',
-			    file_name = EXCLUDED.file_name,
 			    path = EXCLUDED.path
 			WHERE chunk_metadata.seq < EXCLUDED.seq
-		`, chunkId, seq, fileName, path)
+		`, folder, fileName, seq, path)
 
 		return err
 	})
 }
 
-func (store *CraqStore) MarkClean(chunkId string, seq uint64) error {
+func (store *CraqStore) MarkClean(folder, fileName string, seq uint64) error {
 	return crdbpgx.ExecuteTx(context.Background(), store.pool, pgx.TxOptions{}, func(tx pgx.Tx) error {
 		tag, err := tx.Exec(context.Background(), `
 			UPDATE chunk_metadata
 			SET state = 'clean'
-			WHERE chunk_id = $1 AND seq = $2
-		`, chunkId, seq)
+			WHERE folder = $1 AND file_name = $2 AND seq = $3
+		`, folder, fileName, seq)
 		if err != nil {
 			return err
 		}
@@ -70,14 +57,15 @@ func (store *CraqStore) MarkClean(chunkId string, seq uint64) error {
 	})
 }
 
-func (store *CraqStore) GetLatest(chunkId string) (Chunk, bool) {
+func (store *CraqStore) GetLatest(folder, fileName string) (Chunk, bool) {
 	var seq uint64
-	var stateStr string
-	var fileName, path string
+	var stateStr, path string
 
 	err := store.pool.QueryRow(context.Background(),
-		`SELECT seq, state, file_name, path FROM chunk_metadata WHERE chunk_id = $1`,
-		chunkId).Scan(&seq, &stateStr, &fileName, &path)
+		`SELECT seq, state, path 
+		 FROM chunk_metadata 
+		 WHERE folder = $1 AND file_name = $2`,
+		folder, fileName).Scan(&seq, &stateStr, &path)
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -94,10 +82,47 @@ func (store *CraqStore) GetLatest(chunkId string) (Chunk, bool) {
 	}
 
 	return Chunk{
-		ChunkID:  chunkId,
+		Folder:   folder,
 		FileName: fileName,
 		Seq:      seq,
 		State:    stateVersion,
 		Path:     path,
 	}, true
+}
+
+func (store *CraqStore) ListFilesInFolder(folder string) ([]string, error) {
+	rows, err := store.pool.Query(context.Background(),
+		`SELECT DISTINCT folder, file_name FROM chunk_metadata WHERE folder LIKE $1 || '%'`, folder)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	entries := make(map[string]struct{})
+
+	for rows.Next() {
+		var fullFolder, fileName string
+		if err := rows.Scan(&fullFolder, &fileName); err != nil {
+			return nil, err
+		}
+
+		trimmed := strings.TrimPrefix(fullFolder, folder)
+		if trimmed == "" {
+			// Direct file in the folder
+			entries[fileName] = struct{}{}
+		} else {
+			// Handle subdir case like `/craq/docker` → returns `docker`
+			trimmed = strings.TrimPrefix(trimmed, "/")
+			parts := strings.Split(trimmed, "/")
+			if len(parts) > 0 && parts[0] != "" {
+				entries[parts[0]+"/"] = struct{}{}
+			}
+		}
+	}
+
+	var result []string
+	for name := range entries {
+		result = append(result, name)
+	}
+	return result, nil
 }

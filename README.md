@@ -56,6 +56,8 @@ export PATH="$PATH:$(go env GOPATH)/bin"
 ### 2. Generate gRPC code from proto
 
 ```bash
+export PATH="$PATH:$(go env GOPATH)/bin"
+
 protoc \
   --proto_path=proto \
   --go_out=gen/managerpb \

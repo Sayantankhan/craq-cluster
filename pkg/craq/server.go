@@ -21,44 +21,8 @@ func NewNodeServer(n *Node) *NodeServer {
 	return &NodeServer{node: n}
 }
 
-func (s *NodeServer) Write(ctx context.Context, req *rpcpb.WriteReq) (*rpcpb.WriteAck, error) {
-	internalReq := &rpcpb.WriteReq{
-		ChunkId:  req.ChunkId,
-		Seq:      req.Seq,
-		FileName: req.FileName,
-		Path:     req.Path,
-	}
-
-	internalAck := &rpcpb.WriteAck{}
-
-	if err := s.node.HandleWrite(internalReq, internalAck); err != nil {
-		return nil, err
-	}
-
-	return &rpcpb.WriteAck{
-		ChunkId: internalAck.ChunkId,
-		Seq:     internalAck.Seq,
-	}, nil
-}
-
-func (s *NodeServer) Read(ctx context.Context, req *rpcpb.ReadReq) (*rpcpb.ReadResponse, error) {
-	internalReq := &rpcpb.ReadReq{ChunkId: req.ChunkId}
-	internalResp := &rpcpb.ReadResponse{}
-
-	if err := s.node.HandleRead(internalReq, internalResp); err != nil {
-		return nil, err
-	}
-
-	return &rpcpb.ReadResponse{
-		ChunkId:  internalResp.ChunkId,
-		Seq:      internalResp.Seq,
-		FileName: internalResp.FileName,
-		Path:     internalResp.Path,
-	}, nil
-}
-
 func (s *NodeServer) QueryVersion(ctx context.Context, req *rpcpb.VersionQuery) (*rpcpb.VersionResponse, error) {
-	internalReq := &rpcpb.VersionQuery{ChunkId: req.ChunkId}
+	internalReq := &rpcpb.VersionQuery{Folder: req.Folder, FileName: req.FileName}
 	internalResp := &rpcpb.VersionResponse{}
 
 	if err := s.node.HandleVersionQuery(internalReq, internalResp); err != nil {
@@ -66,7 +30,7 @@ func (s *NodeServer) QueryVersion(ctx context.Context, req *rpcpb.VersionQuery) 
 	}
 
 	return &rpcpb.VersionResponse{
-		ChunkId:  internalResp.ChunkId,
+		Folder:   internalResp.Folder,
 		Seq:      internalResp.Seq,
 		FileName: internalResp.FileName,
 		Path:     internalResp.Path,
@@ -95,9 +59,17 @@ func (s *NodeServer) StreamWrite(stream rpcpb.Node_StreamWriteServer) error {
 		if firstReq == nil {
 			firstReq = req
 
-			tempPath := filepath.Join("/tmp", req.ChunkId)
+			// Construct full file path: /tmp/{folder}/{file_name}
+			tempPath := filepath.Join("/tmp", req.Folder, req.FileName)
 			firstReq.Path = tempPath
 
+			// Ensure folder exists
+			if err := os.MkdirAll(filepath.Dir(tempPath), 0755); err != nil {
+				log.Printf("[StreamWrite] ❌ Failed to create folder: %v", err)
+				return status.Errorf(codes.Internal, "mkdir failed: %v", err)
+			}
+
+			// Create the file
 			tempFile, err = os.Create(tempPath)
 			if err != nil {
 				log.Printf("[StreamWrite] ❌ Failed to create file: %v\n", err)
@@ -122,12 +94,13 @@ func (s *NodeServer) StreamWrite(stream rpcpb.Node_StreamWriteServer) error {
 	}
 
 	// Step 2: Build internalReq and internalAck (just like Write)
-	internalReq := &rpcpb.WriteReq{
-		ChunkId:  firstReq.ChunkId,
+	internalReq := &rpcpb.StreamWriteReq{
+		Folder:   firstReq.Folder,
 		Seq:      firstReq.Seq,
 		FileName: firstReq.FileName,
 		Path:     firstReq.Path, // path of the reconstructed file
 	}
+
 	internalAck := &rpcpb.WriteAck{}
 
 	if err := s.node.HandleWrite(internalReq, internalAck); err != nil {
@@ -135,18 +108,18 @@ func (s *NodeServer) StreamWrite(stream rpcpb.Node_StreamWriteServer) error {
 		return status.Errorf(codes.Internal, "HandleWrite failed: %v", err)
 	}
 
-	log.Printf("[StreamWrite] ✅ Sending final ack: ChunkId=%s Seq=%d", internalAck.ChunkId, internalAck.Seq)
+	log.Printf("[StreamWrite] ✅ Sending final ack: Folder=%s File=%s Seq=%d", internalAck.Folder, internalAck.FileName, internalAck.Seq)
 	return stream.SendAndClose(internalAck)
 }
 
 func (s *NodeServer) StreamRead(req *rpcpb.StreamReadReq, stream rpcpb.Node_StreamReadServer) error {
-	log.Printf("[StreamRead] 📥 Received request for chunk_id=%s", req.ChunkId)
+	log.Printf("[StreamRead] 📥 Received request for Folder=%s Filename=%s", req.Folder, req.FileName)
 
 	// Fetch the latest metadata for the requested chunk
-	meta, found := s.node.Storage.GetLatest(req.ChunkId)
+	meta, found := s.node.Storage.GetLatest(req.Folder, req.FileName)
 	if !found {
-		log.Printf("[StreamRead] ❌ Chunk %s not found", req.ChunkId)
-		return status.Errorf(codes.NotFound, "chunk %s not found", req.ChunkId)
+		log.Printf("[StreamRead] ❌ Folder %s File %s not found", req.Folder, req.FileName)
+		return status.Errorf(codes.NotFound, "Folder %s File % not found", req.Folder, req.FileName)
 	}
 
 	file, err := os.Open(meta.Path)
@@ -179,6 +152,21 @@ func (s *NodeServer) StreamRead(req *rpcpb.StreamReadReq, stream rpcpb.Node_Stre
 		}
 	}
 
-	log.Printf("[StreamRead] ✅ Completed streaming chunk %s", req.ChunkId)
+	log.Printf("[StreamRead] ✅ Completed streaming Folder=%s Filename=%s", req.Folder, req.FileName)
 	return nil
+}
+
+func (s *NodeServer) ListFiles(ctx context.Context, req *rpcpb.FolderQuery) (*rpcpb.FileList, error) {
+	log.Printf("[ListFiles] 📁 Listing files for folder: %s", req.Folder)
+
+	fileNames, err := s.node.Storage.ListFilesInFolder(req.Folder)
+	if err != nil {
+		log.Printf("[ListFiles] ❌ Failed to list files: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to list files: %v", err)
+	}
+
+	return &rpcpb.FileList{
+		FileNames: fileNames,
+	}, nil
+
 }
