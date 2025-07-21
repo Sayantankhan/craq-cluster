@@ -129,14 +129,13 @@ The client automatically reads from the tail and prints chunk content.
 ## 🧬 Database Schema
 
 ```sql
-CREATE TABLE IF NOT EXISTS chunk_metadata (
-  chunk_id UUID NOT NULL,
-  idx INT NOT NULL,
-  seq BIGINT NOT NULL,
-  state TEXT NOT NULL,
-  file_name TEXT NOT NULL,
-  path TEXT NOT NULL,
-  PRIMARY KEY (chunk_id, idx)
+CREATE TABLE IF NOT EXISTS public.chunk_metadata (
+  folder STRING NOT NULL DEFAULT '/',
+  file_name STRING NOT NULL,
+  seq INT8 NOT NULL,
+  state STRING NOT NULL,
+  path STRING NOT NULL,
+  CONSTRAINT pk_folder_file PRIMARY KEY (folder, file_name)
 );
 ```
 
