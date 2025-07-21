@@ -32,9 +32,9 @@ func NewNode(id string, isHead, isTail bool, store storage.StorageClient, prev, 
 	}
 }
 
-func (n *Node) HandleWrite(req *rpcpb.WriteReq, ack *rpcpb.WriteAck) error {
+func (n *Node) HandleWrite(req *rpcpb.StreamWriteReq, ack *rpcpb.WriteAck) error {
 	if n.IsHead {
-		latest, found := n.Storage.GetLatest(req.ChunkId)
+		latest, found := n.Storage.GetLatest(req.Folder, req.FileName)
 		if found {
 			req.Seq = latest.Seq + 1
 		} else {
@@ -44,7 +44,7 @@ func (n *Node) HandleWrite(req *rpcpb.WriteReq, ack *rpcpb.WriteAck) error {
 	n.Mutex.Lock()
 
 	// Store as dirty version locally
-	if err := n.Storage.Put(req.ChunkId, req.Seq, req.FileName, req.Path); err != nil {
+	if err := n.Storage.Put(req.Seq, req.FileName, req.Folder, req.Path); err != nil {
 		n.Mutex.Unlock()
 		return fmt.Errorf("Storage Put failed: %w", err)
 	}
@@ -53,11 +53,12 @@ func (n *Node) HandleWrite(req *rpcpb.WriteReq, ack *rpcpb.WriteAck) error {
 
 	if n.IsTail {
 		// Tail node: mark clean and generate ack
-		if err := n.Storage.MarkClean(req.ChunkId, req.Seq); err != nil {
+		if err := n.Storage.MarkClean(req.Folder, req.FileName, req.Seq); err != nil {
 			return fmt.Errorf("MarkClean failed at tail: %w", err)
 		}
 
-		ack.ChunkId = req.ChunkId
+		ack.FileName = req.FileName
+		ack.Folder = req.Folder
 		ack.Seq = req.Seq
 		return nil
 	}
@@ -69,46 +70,16 @@ func (n *Node) HandleWrite(req *rpcpb.WriteReq, ack *rpcpb.WriteAck) error {
 	}
 
 	n.Mutex.Lock()
-	if err := n.Storage.MarkClean(nextAck.ChunkId, nextAck.Seq); err != nil {
+	if err := n.Storage.MarkClean(nextAck.Folder, nextAck.FileName, nextAck.Seq); err != nil {
 		n.Mutex.Unlock()
 		return fmt.Errorf("MarkClean after successor ack failed: %w", err)
 	}
 	n.Mutex.Unlock()
 
 	// Propagate ack upward
-	ack.ChunkId = nextAck.ChunkId
+	ack.FileName = nextAck.FileName
+	ack.Folder = nextAck.Folder
 	ack.Seq = nextAck.Seq
-	return nil
-}
-
-func (n *Node) HandleRead(req *rpcpb.ReadReq, resp *rpcpb.ReadResponse) error {
-	n.Mutex.Lock()
-	chunk, found := n.Storage.GetLatest(req.ChunkId)
-	log.Printf("📖 Node %s received read for chunk %s (state: %v)", n.ID, req.ChunkId, chunk.State)
-	n.Mutex.Unlock()
-
-	if !found {
-		return fmt.Errorf("chunk %s not found", req.ChunkId)
-	}
-
-	if chunk.State == storage.Clean {
-		resp.ChunkId = req.ChunkId
-		resp.Seq = chunk.Seq
-		resp.FileName = chunk.FileName
-		resp.Path = chunk.Path
-		return nil
-	}
-
-	query := &rpcpb.VersionQuery{ChunkId: req.ChunkId}
-	versionResp, err := n.Next.QueryVersion(context.Background(), query)
-	if err != nil {
-		return fmt.Errorf("version query failed: %w", err)
-	}
-
-	resp.ChunkId = versionResp.ChunkId
-	resp.Seq = versionResp.Seq
-	resp.FileName = versionResp.FileName
-	resp.Path = versionResp.Path
 	return nil
 }
 
@@ -118,25 +89,25 @@ func (n *Node) HandleVersionQuery(req *rpcpb.VersionQuery, resp *rpcpb.VersionRe
 	}
 
 	n.Mutex.Lock()
-	chunk, found := n.Storage.GetLatest(req.ChunkId)
-	log.Printf("🔍 Tail %s responding to version query for chunk %s", n.ID, req.ChunkId)
+	chunk, found := n.Storage.GetLatest(req.Folder, req.FileName)
+	log.Printf("🔍 Tail %s responding to version query for Folder %s File %s", n.ID, req.Folder, req.FileName)
 	n.Mutex.Unlock()
 
 	if !found {
-		return fmt.Errorf("chunk %s not found at tail", req.ChunkId)
+		return fmt.Errorf("Folder %s File %s not found at tail", req.Folder, req.FileName)
 	}
 	if chunk.State != storage.Clean {
-		return fmt.Errorf("chunk %s at tail is not clean yet", req.ChunkId)
+		return fmt.Errorf("Folder %s File %s at tail is not clean yet", req.Folder, req.FileName)
 	}
 
-	resp.ChunkId = req.ChunkId
+	resp.Folder = chunk.Folder
 	resp.Seq = chunk.Seq
 	resp.FileName = chunk.FileName
 	resp.Path = chunk.Path
 	return nil
 }
 
-func (n *Node) streamFileToNext(req *rpcpb.WriteReq) (*rpcpb.WriteAck, error) {
+func (n *Node) streamFileToNext(req *rpcpb.StreamWriteReq) (*rpcpb.WriteAck, error) {
 	stream, err := n.Next.StreamWrite(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("start stream to next node failed: %w", err)
@@ -161,7 +132,7 @@ func (n *Node) streamFileToNext(req *rpcpb.WriteReq) (*rpcpb.WriteAck, error) {
 		}
 
 		err = stream.Send(&rpcpb.StreamWriteReq{
-			ChunkId:  req.ChunkId,
+			Folder:   req.Folder,
 			Seq:      req.Seq,
 			FileName: req.FileName,
 			Path:     req.Path,

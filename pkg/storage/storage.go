@@ -10,7 +10,7 @@ const (
 
 // Chunk stores metadata and data for a versioned chunk.
 type Chunk struct {
-	ChunkID  string       // UUID
+	Folder   string       // Folder
 	FileName string       // Original file name
 	Seq      uint64       // Version/sequence number
 	State    VersionState // "clean" or "dirty"
@@ -18,7 +18,8 @@ type Chunk struct {
 }
 
 type StorageClient interface {
-	Put(chunkId string, seq uint64, path string, fileName string) error
-	MarkClean(chunkId string, seq uint64) error
-	GetLatest(chunkId string) (Chunk, bool)
+	Put(seq uint64, fileName, folder, path string) error
+	MarkClean(folder, fileName string, seq uint64) error
+	GetLatest(folder, fileName string) (Chunk, bool)
+	ListFilesInFolder(folder string) ([]string, error)
 }

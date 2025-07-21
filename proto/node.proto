@@ -10,48 +10,30 @@ service Node {
   rpc StreamWrite(stream StreamWriteReq) returns (WriteAck);
   rpc StreamRead(StreamReadReq) returns (stream ReadChunk);
 
-  // rpc Write(WriteReq) returns (WriteAck);
-  rpc Read(ReadReq) returns (ReadResponse);
   rpc QueryVersion(VersionQuery) returns (VersionResponse);
+
+  // List all files in a folder
+  rpc ListFiles(FolderQuery) returns (FileList);
 }
 
 message StreamWriteReq {
-  string chunk_id = 1;
+  string folder = 1;
   uint64 seq = 2;
   string file_name = 3;
   string path = 4;
   bytes data = 5; // ✅ REQUIRED to stream file content
 }
 
-// Sent from client or predecessor replica to head/middle/tail
-message WriteReq {
-  string chunk_id = 1;
-  uint64 seq = 2;
-  string file_name = 3;
-  string path = 4;
-}
-
 // Sent back by the tail when commit succeeds
 message WriteAck {
-  string chunk_id = 1;
-  uint64 seq = 2;
-}
-
-// Request to read a chunk (usually from tail)
-message ReadReq {
-  string chunk_id = 1;
-}
-
-// Carries the latest chunk metadata
-message ReadResponse {
-  string chunk_id = 1;
-  uint64 seq = 2;
-  string file_name = 3;
-  string path = 4;
+  string folder = 1;
+  string file_name = 2;
+  uint64 seq = 3;
 }
 
 message StreamReadReq {
-  string chunk_id = 1;
+  string folder = 1;
+  string file_name = 2;
 }
 
 message ReadChunk {
@@ -60,13 +42,24 @@ message ReadChunk {
 
 // Used to fetch version info (used by predecessor replicas)
 message VersionQuery {
-  string chunk_id = 1;
+  string folder = 1;
+  string file_name = 2;
 }
 
 // Carries latest clean version info
 message VersionResponse {
-  string chunk_id = 1;
+  string folder = 1;
   uint64 seq = 2;
   string file_name = 3;
   string path = 4;
+}
+
+// Request to list all files in a given folder
+message FolderQuery {
+  string folder = 1;
+}
+
+// Response containing list of files
+message FileList {
+  repeated string file_names = 1;
 }

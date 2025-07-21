@@ -17,17 +17,17 @@ import (
 
 func main() {
 	if len(os.Args) != 3 {
-		log.Fatalf("Usage: %s <file_path> <chunk_id>", os.Args[0])
+		log.Fatalf("Usage: %s <file_path> <fodler>", os.Args[0])
 	}
 	filePath := os.Args[1]
-	chunkID := os.Args[2]
+	folder := os.Args[2]
 	fileName := filepath.Base(filePath)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	// Step 1: Connect to Manager
-	mgrConn, err := grpc.Dial("localhost:9000", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	mgrConn, err := grpc.Dial("localhost:9005", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("❌ Failed to connect to Manager: %v", err)
 	}
@@ -74,7 +74,7 @@ func main() {
 		}
 
 		err = writeStream.Send(&rpcpb.StreamWriteReq{
-			ChunkId:  chunkID,
+			Folder:   folder,
 			Seq:      0,
 			FileName: fileName,
 			Path:     "", // server stores to /tmp/{chunkID}
@@ -88,11 +88,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("❌ StreamWrite close failed: %v", err)
 	}
-	log.Printf("✅ Write complete: Chunk=%s Seq=%d", ack.ChunkId, ack.Seq)
+	log.Printf("✅ Write complete: Folder=%s File=%s Seq=%d", ack.Folder, ack.FileName, ack.Seq)
 
 	// Step 4: Ask manager for read node
 	readResp, err := mgrClient.GetReadNode(ctx, &managerpb.ReadNodeQuery{
-		ChunkId: chunkID,
+		ChunkId: folder,
 	})
 	if err != nil {
 		log.Fatalf("❌ Manager.GetReadNode failed: %v", err)
@@ -108,7 +108,8 @@ func main() {
 
 	readClient := rpcpb.NewNodeClient(readConn)
 	readStream, err := readClient.StreamRead(ctx, &rpcpb.StreamReadReq{
-		ChunkId: chunkID,
+		Folder:   folder,
+		FileName: fileName,
 	})
 	if err != nil {
 		log.Fatalf("❌ StreamRead failed: %v", err)
@@ -135,4 +136,16 @@ func main() {
 
 	fmt.Println("✅ Final Output:")
 	fmt.Println(string(reconstructed))
+
+	// Step 6: List from the folder
+	reqQuery := &rpcpb.FolderQuery{Folder: folder}
+	resp, err := readClient.ListFiles(ctx, reqQuery)
+	if err != nil {
+		log.Fatalf("❌ ListFiles failed: %v", err)
+	}
+
+	fmt.Printf("📂 Files in folder %s:\n", folder)
+	for _, fileName := range resp.FileNames {
+		fmt.Println("📄", fileName)
+	}
 }

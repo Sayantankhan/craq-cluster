@@ -21,8 +21,8 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	Node_StreamWrite_FullMethodName  = "/rpcpb.Node/StreamWrite"
 	Node_StreamRead_FullMethodName   = "/rpcpb.Node/StreamRead"
-	Node_Read_FullMethodName         = "/rpcpb.Node/Read"
 	Node_QueryVersion_FullMethodName = "/rpcpb.Node/QueryVersion"
+	Node_ListFiles_FullMethodName    = "/rpcpb.Node/ListFiles"
 )
 
 // NodeClient is the client API for Node service.
@@ -34,9 +34,9 @@ type NodeClient interface {
 	// stream
 	StreamWrite(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[StreamWriteReq, WriteAck], error)
 	StreamRead(ctx context.Context, in *StreamReadReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ReadChunk], error)
-	// rpc Write(WriteReq) returns (WriteAck);
-	Read(ctx context.Context, in *ReadReq, opts ...grpc.CallOption) (*ReadResponse, error)
 	QueryVersion(ctx context.Context, in *VersionQuery, opts ...grpc.CallOption) (*VersionResponse, error)
+	// List all files in a folder
+	ListFiles(ctx context.Context, in *FolderQuery, opts ...grpc.CallOption) (*FileList, error)
 }
 
 type nodeClient struct {
@@ -79,20 +79,20 @@ func (c *nodeClient) StreamRead(ctx context.Context, in *StreamReadReq, opts ...
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type Node_StreamReadClient = grpc.ServerStreamingClient[ReadChunk]
 
-func (c *nodeClient) Read(ctx context.Context, in *ReadReq, opts ...grpc.CallOption) (*ReadResponse, error) {
+func (c *nodeClient) QueryVersion(ctx context.Context, in *VersionQuery, opts ...grpc.CallOption) (*VersionResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ReadResponse)
-	err := c.cc.Invoke(ctx, Node_Read_FullMethodName, in, out, cOpts...)
+	out := new(VersionResponse)
+	err := c.cc.Invoke(ctx, Node_QueryVersion_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *nodeClient) QueryVersion(ctx context.Context, in *VersionQuery, opts ...grpc.CallOption) (*VersionResponse, error) {
+func (c *nodeClient) ListFiles(ctx context.Context, in *FolderQuery, opts ...grpc.CallOption) (*FileList, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(VersionResponse)
-	err := c.cc.Invoke(ctx, Node_QueryVersion_FullMethodName, in, out, cOpts...)
+	out := new(FileList)
+	err := c.cc.Invoke(ctx, Node_ListFiles_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -108,9 +108,9 @@ type NodeServer interface {
 	// stream
 	StreamWrite(grpc.ClientStreamingServer[StreamWriteReq, WriteAck]) error
 	StreamRead(*StreamReadReq, grpc.ServerStreamingServer[ReadChunk]) error
-	// rpc Write(WriteReq) returns (WriteAck);
-	Read(context.Context, *ReadReq) (*ReadResponse, error)
 	QueryVersion(context.Context, *VersionQuery) (*VersionResponse, error)
+	// List all files in a folder
+	ListFiles(context.Context, *FolderQuery) (*FileList, error)
 	mustEmbedUnimplementedNodeServer()
 }
 
@@ -127,11 +127,11 @@ func (UnimplementedNodeServer) StreamWrite(grpc.ClientStreamingServer[StreamWrit
 func (UnimplementedNodeServer) StreamRead(*StreamReadReq, grpc.ServerStreamingServer[ReadChunk]) error {
 	return status.Errorf(codes.Unimplemented, "method StreamRead not implemented")
 }
-func (UnimplementedNodeServer) Read(context.Context, *ReadReq) (*ReadResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Read not implemented")
-}
 func (UnimplementedNodeServer) QueryVersion(context.Context, *VersionQuery) (*VersionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method QueryVersion not implemented")
+}
+func (UnimplementedNodeServer) ListFiles(context.Context, *FolderQuery) (*FileList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListFiles not implemented")
 }
 func (UnimplementedNodeServer) mustEmbedUnimplementedNodeServer() {}
 func (UnimplementedNodeServer) testEmbeddedByValue()              {}
@@ -172,24 +172,6 @@ func _Node_StreamRead_Handler(srv interface{}, stream grpc.ServerStream) error {
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type Node_StreamReadServer = grpc.ServerStreamingServer[ReadChunk]
 
-func _Node_Read_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ReadReq)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(NodeServer).Read(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Node_Read_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NodeServer).Read(ctx, req.(*ReadReq))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _Node_QueryVersion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(VersionQuery)
 	if err := dec(in); err != nil {
@@ -208,6 +190,24 @@ func _Node_QueryVersion_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Node_ListFiles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FolderQuery)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NodeServer).ListFiles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Node_ListFiles_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NodeServer).ListFiles(ctx, req.(*FolderQuery))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Node_ServiceDesc is the grpc.ServiceDesc for Node service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -216,12 +216,12 @@ var Node_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*NodeServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Read",
-			Handler:    _Node_Read_Handler,
-		},
-		{
 			MethodName: "QueryVersion",
 			Handler:    _Node_QueryVersion_Handler,
+		},
+		{
+			MethodName: "ListFiles",
+			Handler:    _Node_ListFiles_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

@@ -23,7 +23,7 @@ const (
 
 type StreamWriteReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ChunkId       string                 `protobuf:"bytes,1,opt,name=chunk_id,json=chunkId,proto3" json:"chunk_id,omitempty"`
+	Folder        string                 `protobuf:"bytes,1,opt,name=folder,proto3" json:"folder,omitempty"`
 	Seq           uint64                 `protobuf:"varint,2,opt,name=seq,proto3" json:"seq,omitempty"`
 	FileName      string                 `protobuf:"bytes,3,opt,name=file_name,json=fileName,proto3" json:"file_name,omitempty"`
 	Path          string                 `protobuf:"bytes,4,opt,name=path,proto3" json:"path,omitempty"`
@@ -62,9 +62,9 @@ func (*StreamWriteReq) Descriptor() ([]byte, []int) {
 	return file_node_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *StreamWriteReq) GetChunkId() string {
+func (x *StreamWriteReq) GetFolder() string {
 	if x != nil {
-		return x.ChunkId
+		return x.Folder
 	}
 	return ""
 }
@@ -97,87 +97,19 @@ func (x *StreamWriteReq) GetData() []byte {
 	return nil
 }
 
-// Sent from client or predecessor replica to head/middle/tail
-type WriteReq struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ChunkId       string                 `protobuf:"bytes,1,opt,name=chunk_id,json=chunkId,proto3" json:"chunk_id,omitempty"`
-	Seq           uint64                 `protobuf:"varint,2,opt,name=seq,proto3" json:"seq,omitempty"`
-	FileName      string                 `protobuf:"bytes,3,opt,name=file_name,json=fileName,proto3" json:"file_name,omitempty"`
-	Path          string                 `protobuf:"bytes,4,opt,name=path,proto3" json:"path,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *WriteReq) Reset() {
-	*x = WriteReq{}
-	mi := &file_node_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *WriteReq) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*WriteReq) ProtoMessage() {}
-
-func (x *WriteReq) ProtoReflect() protoreflect.Message {
-	mi := &file_node_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use WriteReq.ProtoReflect.Descriptor instead.
-func (*WriteReq) Descriptor() ([]byte, []int) {
-	return file_node_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *WriteReq) GetChunkId() string {
-	if x != nil {
-		return x.ChunkId
-	}
-	return ""
-}
-
-func (x *WriteReq) GetSeq() uint64 {
-	if x != nil {
-		return x.Seq
-	}
-	return 0
-}
-
-func (x *WriteReq) GetFileName() string {
-	if x != nil {
-		return x.FileName
-	}
-	return ""
-}
-
-func (x *WriteReq) GetPath() string {
-	if x != nil {
-		return x.Path
-	}
-	return ""
-}
-
 // Sent back by the tail when commit succeeds
 type WriteAck struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ChunkId       string                 `protobuf:"bytes,1,opt,name=chunk_id,json=chunkId,proto3" json:"chunk_id,omitempty"`
-	Seq           uint64                 `protobuf:"varint,2,opt,name=seq,proto3" json:"seq,omitempty"`
+	Folder        string                 `protobuf:"bytes,1,opt,name=folder,proto3" json:"folder,omitempty"`
+	FileName      string                 `protobuf:"bytes,2,opt,name=file_name,json=fileName,proto3" json:"file_name,omitempty"`
+	Seq           uint64                 `protobuf:"varint,3,opt,name=seq,proto3" json:"seq,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *WriteAck) Reset() {
 	*x = WriteAck{}
-	mi := &file_node_proto_msgTypes[2]
+	mi := &file_node_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -189,7 +121,7 @@ func (x *WriteAck) String() string {
 func (*WriteAck) ProtoMessage() {}
 
 func (x *WriteAck) ProtoReflect() protoreflect.Message {
-	mi := &file_node_proto_msgTypes[2]
+	mi := &file_node_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -202,12 +134,19 @@ func (x *WriteAck) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteAck.ProtoReflect.Descriptor instead.
 func (*WriteAck) Descriptor() ([]byte, []int) {
-	return file_node_proto_rawDescGZIP(), []int{2}
+	return file_node_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *WriteAck) GetChunkId() string {
+func (x *WriteAck) GetFolder() string {
 	if x != nil {
-		return x.ChunkId
+		return x.Folder
+	}
+	return ""
+}
+
+func (x *WriteAck) GetFileName() string {
+	if x != nil {
+		return x.FileName
 	}
 	return ""
 }
@@ -219,130 +158,17 @@ func (x *WriteAck) GetSeq() uint64 {
 	return 0
 }
 
-// Request to read a chunk (usually from tail)
-type ReadReq struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ChunkId       string                 `protobuf:"bytes,1,opt,name=chunk_id,json=chunkId,proto3" json:"chunk_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ReadReq) Reset() {
-	*x = ReadReq{}
-	mi := &file_node_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ReadReq) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ReadReq) ProtoMessage() {}
-
-func (x *ReadReq) ProtoReflect() protoreflect.Message {
-	mi := &file_node_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ReadReq.ProtoReflect.Descriptor instead.
-func (*ReadReq) Descriptor() ([]byte, []int) {
-	return file_node_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *ReadReq) GetChunkId() string {
-	if x != nil {
-		return x.ChunkId
-	}
-	return ""
-}
-
-// Carries the latest chunk metadata
-type ReadResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ChunkId       string                 `protobuf:"bytes,1,opt,name=chunk_id,json=chunkId,proto3" json:"chunk_id,omitempty"`
-	Seq           uint64                 `protobuf:"varint,2,opt,name=seq,proto3" json:"seq,omitempty"`
-	FileName      string                 `protobuf:"bytes,3,opt,name=file_name,json=fileName,proto3" json:"file_name,omitempty"`
-	Path          string                 `protobuf:"bytes,4,opt,name=path,proto3" json:"path,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ReadResponse) Reset() {
-	*x = ReadResponse{}
-	mi := &file_node_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ReadResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ReadResponse) ProtoMessage() {}
-
-func (x *ReadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_node_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ReadResponse.ProtoReflect.Descriptor instead.
-func (*ReadResponse) Descriptor() ([]byte, []int) {
-	return file_node_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *ReadResponse) GetChunkId() string {
-	if x != nil {
-		return x.ChunkId
-	}
-	return ""
-}
-
-func (x *ReadResponse) GetSeq() uint64 {
-	if x != nil {
-		return x.Seq
-	}
-	return 0
-}
-
-func (x *ReadResponse) GetFileName() string {
-	if x != nil {
-		return x.FileName
-	}
-	return ""
-}
-
-func (x *ReadResponse) GetPath() string {
-	if x != nil {
-		return x.Path
-	}
-	return ""
-}
-
 type StreamReadReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ChunkId       string                 `protobuf:"bytes,1,opt,name=chunk_id,json=chunkId,proto3" json:"chunk_id,omitempty"`
+	Folder        string                 `protobuf:"bytes,1,opt,name=folder,proto3" json:"folder,omitempty"`
+	FileName      string                 `protobuf:"bytes,2,opt,name=file_name,json=fileName,proto3" json:"file_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StreamReadReq) Reset() {
 	*x = StreamReadReq{}
-	mi := &file_node_proto_msgTypes[5]
+	mi := &file_node_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -354,7 +180,7 @@ func (x *StreamReadReq) String() string {
 func (*StreamReadReq) ProtoMessage() {}
 
 func (x *StreamReadReq) ProtoReflect() protoreflect.Message {
-	mi := &file_node_proto_msgTypes[5]
+	mi := &file_node_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -367,12 +193,19 @@ func (x *StreamReadReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamReadReq.ProtoReflect.Descriptor instead.
 func (*StreamReadReq) Descriptor() ([]byte, []int) {
-	return file_node_proto_rawDescGZIP(), []int{5}
+	return file_node_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *StreamReadReq) GetChunkId() string {
+func (x *StreamReadReq) GetFolder() string {
 	if x != nil {
-		return x.ChunkId
+		return x.Folder
+	}
+	return ""
+}
+
+func (x *StreamReadReq) GetFileName() string {
+	if x != nil {
+		return x.FileName
 	}
 	return ""
 }
@@ -386,7 +219,7 @@ type ReadChunk struct {
 
 func (x *ReadChunk) Reset() {
 	*x = ReadChunk{}
-	mi := &file_node_proto_msgTypes[6]
+	mi := &file_node_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -398,7 +231,7 @@ func (x *ReadChunk) String() string {
 func (*ReadChunk) ProtoMessage() {}
 
 func (x *ReadChunk) ProtoReflect() protoreflect.Message {
-	mi := &file_node_proto_msgTypes[6]
+	mi := &file_node_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -411,7 +244,7 @@ func (x *ReadChunk) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReadChunk.ProtoReflect.Descriptor instead.
 func (*ReadChunk) Descriptor() ([]byte, []int) {
-	return file_node_proto_rawDescGZIP(), []int{6}
+	return file_node_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ReadChunk) GetData() []byte {
@@ -424,14 +257,15 @@ func (x *ReadChunk) GetData() []byte {
 // Used to fetch version info (used by predecessor replicas)
 type VersionQuery struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ChunkId       string                 `protobuf:"bytes,1,opt,name=chunk_id,json=chunkId,proto3" json:"chunk_id,omitempty"`
+	Folder        string                 `protobuf:"bytes,1,opt,name=folder,proto3" json:"folder,omitempty"`
+	FileName      string                 `protobuf:"bytes,2,opt,name=file_name,json=fileName,proto3" json:"file_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *VersionQuery) Reset() {
 	*x = VersionQuery{}
-	mi := &file_node_proto_msgTypes[7]
+	mi := &file_node_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -443,7 +277,7 @@ func (x *VersionQuery) String() string {
 func (*VersionQuery) ProtoMessage() {}
 
 func (x *VersionQuery) ProtoReflect() protoreflect.Message {
-	mi := &file_node_proto_msgTypes[7]
+	mi := &file_node_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -456,12 +290,19 @@ func (x *VersionQuery) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VersionQuery.ProtoReflect.Descriptor instead.
 func (*VersionQuery) Descriptor() ([]byte, []int) {
-	return file_node_proto_rawDescGZIP(), []int{7}
+	return file_node_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *VersionQuery) GetChunkId() string {
+func (x *VersionQuery) GetFolder() string {
 	if x != nil {
-		return x.ChunkId
+		return x.Folder
+	}
+	return ""
+}
+
+func (x *VersionQuery) GetFileName() string {
+	if x != nil {
+		return x.FileName
 	}
 	return ""
 }
@@ -469,7 +310,7 @@ func (x *VersionQuery) GetChunkId() string {
 // Carries latest clean version info
 type VersionResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ChunkId       string                 `protobuf:"bytes,1,opt,name=chunk_id,json=chunkId,proto3" json:"chunk_id,omitempty"`
+	Folder        string                 `protobuf:"bytes,1,opt,name=folder,proto3" json:"folder,omitempty"`
 	Seq           uint64                 `protobuf:"varint,2,opt,name=seq,proto3" json:"seq,omitempty"`
 	FileName      string                 `protobuf:"bytes,3,opt,name=file_name,json=fileName,proto3" json:"file_name,omitempty"`
 	Path          string                 `protobuf:"bytes,4,opt,name=path,proto3" json:"path,omitempty"`
@@ -479,7 +320,7 @@ type VersionResponse struct {
 
 func (x *VersionResponse) Reset() {
 	*x = VersionResponse{}
-	mi := &file_node_proto_msgTypes[8]
+	mi := &file_node_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -491,7 +332,7 @@ func (x *VersionResponse) String() string {
 func (*VersionResponse) ProtoMessage() {}
 
 func (x *VersionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_node_proto_msgTypes[8]
+	mi := &file_node_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -504,12 +345,12 @@ func (x *VersionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VersionResponse.ProtoReflect.Descriptor instead.
 func (*VersionResponse) Descriptor() ([]byte, []int) {
-	return file_node_proto_rawDescGZIP(), []int{8}
+	return file_node_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *VersionResponse) GetChunkId() string {
+func (x *VersionResponse) GetFolder() string {
 	if x != nil {
-		return x.ChunkId
+		return x.Folder
 	}
 	return ""
 }
@@ -535,50 +376,136 @@ func (x *VersionResponse) GetPath() string {
 	return ""
 }
 
+// Request to list all files in a given folder
+type FolderQuery struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Folder        string                 `protobuf:"bytes,1,opt,name=folder,proto3" json:"folder,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FolderQuery) Reset() {
+	*x = FolderQuery{}
+	mi := &file_node_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FolderQuery) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FolderQuery) ProtoMessage() {}
+
+func (x *FolderQuery) ProtoReflect() protoreflect.Message {
+	mi := &file_node_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FolderQuery.ProtoReflect.Descriptor instead.
+func (*FolderQuery) Descriptor() ([]byte, []int) {
+	return file_node_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *FolderQuery) GetFolder() string {
+	if x != nil {
+		return x.Folder
+	}
+	return ""
+}
+
+// Response containing list of files
+type FileList struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	FileNames     []string               `protobuf:"bytes,1,rep,name=file_names,json=fileNames,proto3" json:"file_names,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FileList) Reset() {
+	*x = FileList{}
+	mi := &file_node_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FileList) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FileList) ProtoMessage() {}
+
+func (x *FileList) ProtoReflect() protoreflect.Message {
+	mi := &file_node_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FileList.ProtoReflect.Descriptor instead.
+func (*FileList) Descriptor() ([]byte, []int) {
+	return file_node_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *FileList) GetFileNames() []string {
+	if x != nil {
+		return x.FileNames
+	}
+	return nil
+}
+
 var File_node_proto protoreflect.FileDescriptor
 
 const file_node_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"node.proto\x12\x05rpcpb\"\x82\x01\n" +
-	"\x0eStreamWriteReq\x12\x19\n" +
-	"\bchunk_id\x18\x01 \x01(\tR\achunkId\x12\x10\n" +
+	"node.proto\x12\x05rpcpb\"\x7f\n" +
+	"\x0eStreamWriteReq\x12\x16\n" +
+	"\x06folder\x18\x01 \x01(\tR\x06folder\x12\x10\n" +
 	"\x03seq\x18\x02 \x01(\x04R\x03seq\x12\x1b\n" +
 	"\tfile_name\x18\x03 \x01(\tR\bfileName\x12\x12\n" +
 	"\x04path\x18\x04 \x01(\tR\x04path\x12\x12\n" +
-	"\x04data\x18\x05 \x01(\fR\x04data\"h\n" +
-	"\bWriteReq\x12\x19\n" +
-	"\bchunk_id\x18\x01 \x01(\tR\achunkId\x12\x10\n" +
-	"\x03seq\x18\x02 \x01(\x04R\x03seq\x12\x1b\n" +
-	"\tfile_name\x18\x03 \x01(\tR\bfileName\x12\x12\n" +
-	"\x04path\x18\x04 \x01(\tR\x04path\"7\n" +
-	"\bWriteAck\x12\x19\n" +
-	"\bchunk_id\x18\x01 \x01(\tR\achunkId\x12\x10\n" +
-	"\x03seq\x18\x02 \x01(\x04R\x03seq\"$\n" +
-	"\aReadReq\x12\x19\n" +
-	"\bchunk_id\x18\x01 \x01(\tR\achunkId\"l\n" +
-	"\fReadResponse\x12\x19\n" +
-	"\bchunk_id\x18\x01 \x01(\tR\achunkId\x12\x10\n" +
-	"\x03seq\x18\x02 \x01(\x04R\x03seq\x12\x1b\n" +
-	"\tfile_name\x18\x03 \x01(\tR\bfileName\x12\x12\n" +
-	"\x04path\x18\x04 \x01(\tR\x04path\"*\n" +
-	"\rStreamReadReq\x12\x19\n" +
-	"\bchunk_id\x18\x01 \x01(\tR\achunkId\"\x1f\n" +
+	"\x04data\x18\x05 \x01(\fR\x04data\"Q\n" +
+	"\bWriteAck\x12\x16\n" +
+	"\x06folder\x18\x01 \x01(\tR\x06folder\x12\x1b\n" +
+	"\tfile_name\x18\x02 \x01(\tR\bfileName\x12\x10\n" +
+	"\x03seq\x18\x03 \x01(\x04R\x03seq\"D\n" +
+	"\rStreamReadReq\x12\x16\n" +
+	"\x06folder\x18\x01 \x01(\tR\x06folder\x12\x1b\n" +
+	"\tfile_name\x18\x02 \x01(\tR\bfileName\"\x1f\n" +
 	"\tReadChunk\x12\x12\n" +
-	"\x04data\x18\x01 \x01(\fR\x04data\")\n" +
-	"\fVersionQuery\x12\x19\n" +
-	"\bchunk_id\x18\x01 \x01(\tR\achunkId\"o\n" +
-	"\x0fVersionResponse\x12\x19\n" +
-	"\bchunk_id\x18\x01 \x01(\tR\achunkId\x12\x10\n" +
+	"\x04data\x18\x01 \x01(\fR\x04data\"C\n" +
+	"\fVersionQuery\x12\x16\n" +
+	"\x06folder\x18\x01 \x01(\tR\x06folder\x12\x1b\n" +
+	"\tfile_name\x18\x02 \x01(\tR\bfileName\"l\n" +
+	"\x0fVersionResponse\x12\x16\n" +
+	"\x06folder\x18\x01 \x01(\tR\x06folder\x12\x10\n" +
 	"\x03seq\x18\x02 \x01(\x04R\x03seq\x12\x1b\n" +
 	"\tfile_name\x18\x03 \x01(\tR\bfileName\x12\x12\n" +
-	"\x04path\x18\x04 \x01(\tR\x04path2\xe1\x01\n" +
+	"\x04path\x18\x04 \x01(\tR\x04path\"%\n" +
+	"\vFolderQuery\x12\x16\n" +
+	"\x06folder\x18\x01 \x01(\tR\x06folder\")\n" +
+	"\bFileList\x12\x1d\n" +
+	"\n" +
+	"file_names\x18\x01 \x03(\tR\tfileNames2\xe6\x01\n" +
 	"\x04Node\x127\n" +
 	"\vStreamWrite\x12\x15.rpcpb.StreamWriteReq\x1a\x0f.rpcpb.WriteAck(\x01\x126\n" +
 	"\n" +
-	"StreamRead\x12\x14.rpcpb.StreamReadReq\x1a\x10.rpcpb.ReadChunk0\x01\x12+\n" +
-	"\x04Read\x12\x0e.rpcpb.ReadReq\x1a\x13.rpcpb.ReadResponse\x12;\n" +
-	"\fQueryVersion\x12\x13.rpcpb.VersionQuery\x1a\x16.rpcpb.VersionResponseB\tZ\a.;rpcpbb\x06proto3"
+	"StreamRead\x12\x14.rpcpb.StreamReadReq\x1a\x10.rpcpb.ReadChunk0\x01\x12;\n" +
+	"\fQueryVersion\x12\x13.rpcpb.VersionQuery\x1a\x16.rpcpb.VersionResponse\x120\n" +
+	"\tListFiles\x12\x12.rpcpb.FolderQuery\x1a\x0f.rpcpb.FileListB\tZ\a.;rpcpbb\x06proto3"
 
 var (
 	file_node_proto_rawDescOnce sync.Once
@@ -592,27 +519,26 @@ func file_node_proto_rawDescGZIP() []byte {
 	return file_node_proto_rawDescData
 }
 
-var file_node_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_node_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_node_proto_goTypes = []any{
 	(*StreamWriteReq)(nil),  // 0: rpcpb.StreamWriteReq
-	(*WriteReq)(nil),        // 1: rpcpb.WriteReq
-	(*WriteAck)(nil),        // 2: rpcpb.WriteAck
-	(*ReadReq)(nil),         // 3: rpcpb.ReadReq
-	(*ReadResponse)(nil),    // 4: rpcpb.ReadResponse
-	(*StreamReadReq)(nil),   // 5: rpcpb.StreamReadReq
-	(*ReadChunk)(nil),       // 6: rpcpb.ReadChunk
-	(*VersionQuery)(nil),    // 7: rpcpb.VersionQuery
-	(*VersionResponse)(nil), // 8: rpcpb.VersionResponse
+	(*WriteAck)(nil),        // 1: rpcpb.WriteAck
+	(*StreamReadReq)(nil),   // 2: rpcpb.StreamReadReq
+	(*ReadChunk)(nil),       // 3: rpcpb.ReadChunk
+	(*VersionQuery)(nil),    // 4: rpcpb.VersionQuery
+	(*VersionResponse)(nil), // 5: rpcpb.VersionResponse
+	(*FolderQuery)(nil),     // 6: rpcpb.FolderQuery
+	(*FileList)(nil),        // 7: rpcpb.FileList
 }
 var file_node_proto_depIdxs = []int32{
 	0, // 0: rpcpb.Node.StreamWrite:input_type -> rpcpb.StreamWriteReq
-	5, // 1: rpcpb.Node.StreamRead:input_type -> rpcpb.StreamReadReq
-	3, // 2: rpcpb.Node.Read:input_type -> rpcpb.ReadReq
-	7, // 3: rpcpb.Node.QueryVersion:input_type -> rpcpb.VersionQuery
-	2, // 4: rpcpb.Node.StreamWrite:output_type -> rpcpb.WriteAck
-	6, // 5: rpcpb.Node.StreamRead:output_type -> rpcpb.ReadChunk
-	4, // 6: rpcpb.Node.Read:output_type -> rpcpb.ReadResponse
-	8, // 7: rpcpb.Node.QueryVersion:output_type -> rpcpb.VersionResponse
+	2, // 1: rpcpb.Node.StreamRead:input_type -> rpcpb.StreamReadReq
+	4, // 2: rpcpb.Node.QueryVersion:input_type -> rpcpb.VersionQuery
+	6, // 3: rpcpb.Node.ListFiles:input_type -> rpcpb.FolderQuery
+	1, // 4: rpcpb.Node.StreamWrite:output_type -> rpcpb.WriteAck
+	3, // 5: rpcpb.Node.StreamRead:output_type -> rpcpb.ReadChunk
+	5, // 6: rpcpb.Node.QueryVersion:output_type -> rpcpb.VersionResponse
+	7, // 7: rpcpb.Node.ListFiles:output_type -> rpcpb.FileList
 	4, // [4:8] is the sub-list for method output_type
 	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
@@ -631,7 +557,7 @@ func file_node_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_node_proto_rawDesc), len(file_node_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
