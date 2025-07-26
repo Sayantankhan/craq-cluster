@@ -20,7 +20,7 @@ services:
       dockerfile: Dockerfile.node
     environment:
       - NODE_ID=n1
-      - NODE_ADDRESS=node1:8001
+      - NODE_ADDRESS=localhost:8001
     ports:
       - "8001:8001"
     volumes:
@@ -34,7 +34,7 @@ services:
       dockerfile: Dockerfile.node
     environment:
       - NODE_ID=n2
-      - NODE_ADDRESS=node2:8002
+      - NODE_ADDRESS=localhost:8002
     ports:
       - "8002:8002"
     volumes:
@@ -48,7 +48,7 @@ services:
       dockerfile: Dockerfile.node
     environment:
       - NODE_ID=n3
-      - NODE_ADDRESS=node3:8003
+      - NODE_ADDRESS=localhost:8003
     ports:
       - "8003:8003"
     volumes:
