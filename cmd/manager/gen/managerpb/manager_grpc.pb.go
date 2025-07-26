@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -19,6 +20,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	Manager_RegisterNode_FullMethodName = "/managerpb.Manager/RegisterNode"
+	Manager_GetSuccessor_FullMethodName = "/managerpb.Manager/GetSuccessor"
+	Manager_Heartbeat_FullMethodName    = "/managerpb.Manager/Heartbeat"
 	Manager_GetWriteHead_FullMethodName = "/managerpb.Manager/GetWriteHead"
 	Manager_GetReadNode_FullMethodName  = "/managerpb.Manager/GetReadNode"
 )
@@ -27,7 +31,10 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ManagerClient interface {
-	GetWriteHead(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*NodeInfo, error)
+	RegisterNode(ctx context.Context, in *NodeInfo, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	GetSuccessor(ctx context.Context, in *SuccessorQuery, opts ...grpc.CallOption) (*NodeInfo, error)
+	Heartbeat(ctx context.Context, in *NodeHealth, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	GetWriteHead(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*NodeInfo, error)
 	GetReadNode(ctx context.Context, in *ReadNodeQuery, opts ...grpc.CallOption) (*NodeInfo, error)
 }
 
@@ -39,7 +46,37 @@ func NewManagerClient(cc grpc.ClientConnInterface) ManagerClient {
 	return &managerClient{cc}
 }
 
-func (c *managerClient) GetWriteHead(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*NodeInfo, error) {
+func (c *managerClient) RegisterNode(ctx context.Context, in *NodeInfo, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, Manager_RegisterNode_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *managerClient) GetSuccessor(ctx context.Context, in *SuccessorQuery, opts ...grpc.CallOption) (*NodeInfo, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(NodeInfo)
+	err := c.cc.Invoke(ctx, Manager_GetSuccessor_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *managerClient) Heartbeat(ctx context.Context, in *NodeHealth, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, Manager_Heartbeat_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *managerClient) GetWriteHead(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*NodeInfo, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(NodeInfo)
 	err := c.cc.Invoke(ctx, Manager_GetWriteHead_FullMethodName, in, out, cOpts...)
@@ -63,7 +100,10 @@ func (c *managerClient) GetReadNode(ctx context.Context, in *ReadNodeQuery, opts
 // All implementations must embed UnimplementedManagerServer
 // for forward compatibility.
 type ManagerServer interface {
-	GetWriteHead(context.Context, *Empty) (*NodeInfo, error)
+	RegisterNode(context.Context, *NodeInfo) (*emptypb.Empty, error)
+	GetSuccessor(context.Context, *SuccessorQuery) (*NodeInfo, error)
+	Heartbeat(context.Context, *NodeHealth) (*emptypb.Empty, error)
+	GetWriteHead(context.Context, *emptypb.Empty) (*NodeInfo, error)
 	GetReadNode(context.Context, *ReadNodeQuery) (*NodeInfo, error)
 	mustEmbedUnimplementedManagerServer()
 }
@@ -75,7 +115,16 @@ type ManagerServer interface {
 // pointer dereference when methods are called.
 type UnimplementedManagerServer struct{}
 
-func (UnimplementedManagerServer) GetWriteHead(context.Context, *Empty) (*NodeInfo, error) {
+func (UnimplementedManagerServer) RegisterNode(context.Context, *NodeInfo) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RegisterNode not implemented")
+}
+func (UnimplementedManagerServer) GetSuccessor(context.Context, *SuccessorQuery) (*NodeInfo, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSuccessor not implemented")
+}
+func (UnimplementedManagerServer) Heartbeat(context.Context, *NodeHealth) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Heartbeat not implemented")
+}
+func (UnimplementedManagerServer) GetWriteHead(context.Context, *emptypb.Empty) (*NodeInfo, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetWriteHead not implemented")
 }
 func (UnimplementedManagerServer) GetReadNode(context.Context, *ReadNodeQuery) (*NodeInfo, error) {
@@ -102,8 +151,62 @@ func RegisterManagerServer(s grpc.ServiceRegistrar, srv ManagerServer) {
 	s.RegisterService(&Manager_ServiceDesc, srv)
 }
 
+func _Manager_RegisterNode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NodeInfo)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ManagerServer).RegisterNode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Manager_RegisterNode_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ManagerServer).RegisterNode(ctx, req.(*NodeInfo))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Manager_GetSuccessor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SuccessorQuery)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ManagerServer).GetSuccessor(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Manager_GetSuccessor_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ManagerServer).GetSuccessor(ctx, req.(*SuccessorQuery))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Manager_Heartbeat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NodeHealth)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ManagerServer).Heartbeat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Manager_Heartbeat_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ManagerServer).Heartbeat(ctx, req.(*NodeHealth))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Manager_GetWriteHead_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Empty)
+	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -115,7 +218,7 @@ func _Manager_GetWriteHead_Handler(srv interface{}, ctx context.Context, dec fun
 		FullMethod: Manager_GetWriteHead_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ManagerServer).GetWriteHead(ctx, req.(*Empty))
+		return srv.(ManagerServer).GetWriteHead(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -145,6 +248,18 @@ var Manager_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "managerpb.Manager",
 	HandlerType: (*ManagerServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "RegisterNode",
+			Handler:    _Manager_RegisterNode_Handler,
+		},
+		{
+			MethodName: "GetSuccessor",
+			Handler:    _Manager_GetSuccessor_Handler,
+		},
+		{
+			MethodName: "Heartbeat",
+			Handler:    _Manager_Heartbeat_Handler,
+		},
 		{
 			MethodName: "GetWriteHead",
 			Handler:    _Manager_GetWriteHead_Handler,

@@ -89,11 +89,6 @@ go build -o craq-client cmd/client/main.go
 
 ```json
 {
-  "nodes": [
-    {"id": "n1", "addr": "localhost:8001", "isHead": true},
-    {"id": "n2", "addr": "localhost:8002"},
-    {"id": "n3", "addr": "localhost:8003", "isTail": true}
-  ],
   "db": {
     "addr": "postgresql://root@<your-db-ip>:26257/craq?sslmode=disable"
   }
@@ -103,15 +98,15 @@ go build -o craq-client cmd/client/main.go
 ### 2. Start Nodes
 
 ```bash
-NODE_ID=n1 ./craq-node
-NODE_ID=n2 ./craq-node
-NODE_ID=n3 ./craq-node
+NODE_ID=n1 NODE_ADDRESS=localhost:8080 ./craq-node
+NODE_ID=n2 NODE_ADDRESS=localhost:8081 ./craq-node
+NODE_ID=n3 NODE_ADDRESS=localhost:8082 ./craq-node
 ```
 
 ### 3. Start Manager
 
 ```bash
-./craq-manager
+./craq-manager EXPECTED_NODE_COUNT=3
 ```
 
 ## 🧪 Usage
@@ -119,7 +114,19 @@ NODE_ID=n3 ./craq-node
 ### Upload a File
 
 ```bash
-./craq-client ./README.md chunk-readme
+go run main.go put --folder /craq --file ../../README.md
+```
+
+### Get a File
+
+```bash
+go run main.go get --folder /craq --file README.md
+```
+
+### List a Dir
+
+```bash
+go run main.go list --folder /craq
 ```
 
 ### Read a Chunk

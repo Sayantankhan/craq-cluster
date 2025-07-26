@@ -3,20 +3,33 @@ syntax = "proto3";
 package managerpb;
 option go_package = ".;managerpb";
 
+import "google/protobuf/empty.proto";
+
 service Manager {
-  rpc GetWriteHead(Empty) returns (NodeInfo);
-  rpc GetReadNode(ReadNodeQuery) returns (NodeInfo);
-}
+  rpc RegisterNode(NodeInfo) returns (google.protobuf.Empty);
+  rpc GetSuccessor(SuccessorQuery) returns (NodeInfo);
+  rpc Heartbeat(NodeHealth) returns (google.protobuf.Empty);
 
-message Empty {}
-
-message ReadNodeQuery {
-  string chunk_id = 1;
+  rpc GetWriteHead(google.protobuf.Empty) returns (NodeInfo);       // Returns the head node
+  rpc GetReadNode(ReadNodeQuery) returns (NodeInfo);                // Returns any node from head to tail
 }
 
 message NodeInfo {
   string node_id = 1;
   string address = 2;
+  bool is_head = 3;
+  bool is_tail = 4;
 }
 
+message NodeHealth {
+  string node_id = 1;
+}
 
+message SuccessorQuery {
+  string node_id = 1;
+}
+
+message ReadNodeQuery {
+  // Optional: can include filtering criteria later
+  string client_id = 1;
+}

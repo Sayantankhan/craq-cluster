@@ -1,10 +1,6 @@
 {
-	"nodes": [
-	  {"id": "n1", "addr": "localhost:8001", "isHead": true},
-	  {"id": "n2", "addr": "localhost:8002"},
-	  {"id": "n3", "addr": "localhost:8003", "isTail": true}
-	],
-	"db" : {
+	"manager" : "localhost:9005",
+	"db" : { 
 		"addr" : "postgresql://root@192.168.1.10:26257/craq?sslmode=disable"
 	}
   }

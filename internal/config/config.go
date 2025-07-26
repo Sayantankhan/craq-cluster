@@ -17,8 +17,8 @@ type DBInfo struct {
 }
 
 type Config struct {
-	Nodes []NodeInfo `json:"nodes"`
-	DB    DBInfo     `json:"db"`
+	Manager string `json:"manager"`
+	DB      DBInfo `json:"db"`
 }
 
 func Load(path string) (*Config, error) {
@@ -32,17 +32,4 @@ func Load(path string) (*Config, error) {
 	}
 
 	return &cfg, nil
-}
-
-func (c *Config) FindNodeAndSuccessor(id string) (*NodeInfo, *NodeInfo) {
-	for i, n := range c.Nodes {
-		if n.ID == id {
-			var next *NodeInfo
-			if i+1 < len(c.Nodes) {
-				next = &c.Nodes[i+1]
-			}
-			return &n, next
-		}
-	}
-	return nil, nil
 }

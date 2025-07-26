@@ -40,7 +40,7 @@ var getCmd = &cobra.Command{
 		defer cancel()
 
 		readResp, err := mgrClient.GetReadNode(ctx, &managerpb.ReadNodeQuery{
-			ChunkId: fldr,
+			ClientId: fldr,
 		})
 		if err != nil {
 			log.Fatalf("❌ Manager.GetReadNode failed: %v", err)
