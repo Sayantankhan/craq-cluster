@@ -24,12 +24,7 @@ var (
 	nodeAddr = os.Getenv("NODE_ADDRESS")
 )
 
-const (
-	heartbeatInterval = 5 * time.Second
-)
-
 func main() {
-	ctx := context.Background()
 
 	if nodeID == "" || nodeAddr == "" {
 		log.Fatal("NODE_ID, NODE_ADDRESS must be set")
