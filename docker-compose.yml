@@ -18,6 +18,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.node
+    depends_on:
+      - manager
     environment:
       - NODE_ID=n1
       - NODE_ADDRESS=localhost:8001
@@ -32,6 +34,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.node
+    depends_on:
+      - manager
     environment:
       - NODE_ID=n2
       - NODE_ADDRESS=localhost:8002
@@ -46,6 +50,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.node
+    depends_on:
+      - manager
     environment:
       - NODE_ID=n3
       - NODE_ADDRESS=localhost:8003
