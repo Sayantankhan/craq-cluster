@@ -6,6 +6,9 @@ on:
     tags:
       - 'v*'  # Triggers only when you push version tags like v1.0.0
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
