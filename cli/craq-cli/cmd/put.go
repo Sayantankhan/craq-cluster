@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	"craq-cluster/cmd/manager/gen/managerpb"
 	"craq-cluster/gen/rpcpb"
@@ -46,7 +47,7 @@ var putCmd = &cobra.Command{
 		mgrClient := managerpb.NewManagerClient(mgrConn)
 
 		// Step 2: Ask Manager for head node
-		writeHead, err := mgrClient.GetWriteHead(ctx, &managerpb.Empty{})
+		writeHead, err := mgrClient.GetWriteHead(ctx, &emptypb.Empty{})
 		if err != nil {
 			log.Fatalf("❌ Manager.GetWriteHead failed: %v", err)
 		}

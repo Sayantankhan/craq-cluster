@@ -5,6 +5,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.manager
+    environment:
+      - EXPECTED_NODE_COUNT=3
     ports:
       - "9005:9005"
     volumes:
@@ -16,8 +18,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.node
+    depends_on:
+      - manager
     environment:
       - NODE_ID=n1
+      - NODE_ADDRESS=localhost:8001
     ports:
       - "8001:8001"
     volumes:
@@ -29,8 +34,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.node
+    depends_on:
+      - manager
     environment:
       - NODE_ID=n2
+      - NODE_ADDRESS=localhost:8002
     ports:
       - "8002:8002"
     volumes:
@@ -42,8 +50,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.node
+    depends_on:
+      - manager
     environment:
       - NODE_ID=n3
+      - NODE_ADDRESS=localhost:8003
     ports:
       - "8003:8003"
     volumes:
@@ -51,21 +62,6 @@ services:
     networks:
       - craq-net
 
-  client:
-    build:
-      context: .
-      dockerfile: Dockerfile.client
-    depends_on:
-      - manager
-      - node1
-      - node2
-      - node3
-    networks:
-      - craq-net
-    volumes:
-      - ./data:/data
-    stdin_open: true
-    tty: true
 networks:
   craq-net:
     driver: bridge

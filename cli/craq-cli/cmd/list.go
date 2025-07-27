@@ -40,7 +40,7 @@ var listCmd = &cobra.Command{
 
 		mgrClient := managerpb.NewManagerClient(mgrConn)
 
-		readResp, err := mgrClient.GetReadNode(ctx, &managerpb.ReadNodeQuery{ChunkId: folder})
+		readResp, err := mgrClient.GetReadNode(ctx, &managerpb.ReadNodeQuery{ClientId: folder})
 		if err != nil {
 			log.Fatalf("❌ GetReadNode failed: %v", err)
 		}

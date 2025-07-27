@@ -9,6 +9,7 @@ package managerpb
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -21,97 +22,19 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type Empty struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Empty) Reset() {
-	*x = Empty{}
-	mi := &file_manager_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Empty) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Empty) ProtoMessage() {}
-
-func (x *Empty) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Empty.ProtoReflect.Descriptor instead.
-func (*Empty) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{0}
-}
-
-type ReadNodeQuery struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ChunkId       string                 `protobuf:"bytes,1,opt,name=chunk_id,json=chunkId,proto3" json:"chunk_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ReadNodeQuery) Reset() {
-	*x = ReadNodeQuery{}
-	mi := &file_manager_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ReadNodeQuery) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ReadNodeQuery) ProtoMessage() {}
-
-func (x *ReadNodeQuery) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ReadNodeQuery.ProtoReflect.Descriptor instead.
-func (*ReadNodeQuery) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *ReadNodeQuery) GetChunkId() string {
-	if x != nil {
-		return x.ChunkId
-	}
-	return ""
-}
-
 type NodeInfo struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
 	Address       string                 `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
+	IsHead        bool                   `protobuf:"varint,3,opt,name=is_head,json=isHead,proto3" json:"is_head,omitempty"`
+	IsTail        bool                   `protobuf:"varint,4,opt,name=is_tail,json=isTail,proto3" json:"is_tail,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *NodeInfo) Reset() {
 	*x = NodeInfo{}
-	mi := &file_manager_proto_msgTypes[2]
+	mi := &file_manager_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -123,7 +46,7 @@ func (x *NodeInfo) String() string {
 func (*NodeInfo) ProtoMessage() {}
 
 func (x *NodeInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_manager_proto_msgTypes[2]
+	mi := &file_manager_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -136,7 +59,7 @@ func (x *NodeInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodeInfo.ProtoReflect.Descriptor instead.
 func (*NodeInfo) Descriptor() ([]byte, []int) {
-	return file_manager_proto_rawDescGZIP(), []int{2}
+	return file_manager_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *NodeInfo) GetNodeId() string {
@@ -153,19 +76,175 @@ func (x *NodeInfo) GetAddress() string {
 	return ""
 }
 
+func (x *NodeInfo) GetIsHead() bool {
+	if x != nil {
+		return x.IsHead
+	}
+	return false
+}
+
+func (x *NodeInfo) GetIsTail() bool {
+	if x != nil {
+		return x.IsTail
+	}
+	return false
+}
+
+type NodeHealth struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NodeHealth) Reset() {
+	*x = NodeHealth{}
+	mi := &file_manager_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NodeHealth) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NodeHealth) ProtoMessage() {}
+
+func (x *NodeHealth) ProtoReflect() protoreflect.Message {
+	mi := &file_manager_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NodeHealth.ProtoReflect.Descriptor instead.
+func (*NodeHealth) Descriptor() ([]byte, []int) {
+	return file_manager_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *NodeHealth) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
+type SuccessorQuery struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SuccessorQuery) Reset() {
+	*x = SuccessorQuery{}
+	mi := &file_manager_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SuccessorQuery) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SuccessorQuery) ProtoMessage() {}
+
+func (x *SuccessorQuery) ProtoReflect() protoreflect.Message {
+	mi := &file_manager_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SuccessorQuery.ProtoReflect.Descriptor instead.
+func (*SuccessorQuery) Descriptor() ([]byte, []int) {
+	return file_manager_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *SuccessorQuery) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
+type ReadNodeQuery struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Optional: can include filtering criteria later
+	ClientId      string `protobuf:"bytes,1,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReadNodeQuery) Reset() {
+	*x = ReadNodeQuery{}
+	mi := &file_manager_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReadNodeQuery) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReadNodeQuery) ProtoMessage() {}
+
+func (x *ReadNodeQuery) ProtoReflect() protoreflect.Message {
+	mi := &file_manager_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReadNodeQuery.ProtoReflect.Descriptor instead.
+func (*ReadNodeQuery) Descriptor() ([]byte, []int) {
+	return file_manager_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ReadNodeQuery) GetClientId() string {
+	if x != nil {
+		return x.ClientId
+	}
+	return ""
+}
+
 var File_manager_proto protoreflect.FileDescriptor
 
 const file_manager_proto_rawDesc = "" +
 	"\n" +
-	"\rmanager.proto\x12\tmanagerpb\"\a\n" +
-	"\x05Empty\"*\n" +
-	"\rReadNodeQuery\x12\x19\n" +
-	"\bchunk_id\x18\x01 \x01(\tR\achunkId\"=\n" +
+	"\rmanager.proto\x12\tmanagerpb\x1a\x1bgoogle/protobuf/empty.proto\"o\n" +
 	"\bNodeInfo\x12\x17\n" +
 	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12\x18\n" +
-	"\aaddress\x18\x02 \x01(\tR\aaddress2~\n" +
-	"\aManager\x125\n" +
-	"\fGetWriteHead\x12\x10.managerpb.Empty\x1a\x13.managerpb.NodeInfo\x12<\n" +
+	"\aaddress\x18\x02 \x01(\tR\aaddress\x12\x17\n" +
+	"\ais_head\x18\x03 \x01(\bR\x06isHead\x12\x17\n" +
+	"\ais_tail\x18\x04 \x01(\bR\x06isTail\"%\n" +
+	"\n" +
+	"NodeHealth\x12\x17\n" +
+	"\anode_id\x18\x01 \x01(\tR\x06nodeId\")\n" +
+	"\x0eSuccessorQuery\x12\x17\n" +
+	"\anode_id\x18\x01 \x01(\tR\x06nodeId\",\n" +
+	"\rReadNodeQuery\x12\x1b\n" +
+	"\tclient_id\x18\x01 \x01(\tR\bclientId2\xbd\x02\n" +
+	"\aManager\x12;\n" +
+	"\fRegisterNode\x12\x13.managerpb.NodeInfo\x1a\x16.google.protobuf.Empty\x12>\n" +
+	"\fGetSuccessor\x12\x19.managerpb.SuccessorQuery\x1a\x13.managerpb.NodeInfo\x12:\n" +
+	"\tHeartbeat\x12\x15.managerpb.NodeHealth\x1a\x16.google.protobuf.Empty\x12;\n" +
+	"\fGetWriteHead\x12\x16.google.protobuf.Empty\x1a\x13.managerpb.NodeInfo\x12<\n" +
 	"\vGetReadNode\x12\x18.managerpb.ReadNodeQuery\x1a\x13.managerpb.NodeInfoB\rZ\v.;managerpbb\x06proto3"
 
 var (
@@ -180,19 +259,27 @@ func file_manager_proto_rawDescGZIP() []byte {
 	return file_manager_proto_rawDescData
 }
 
-var file_manager_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_manager_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_manager_proto_goTypes = []any{
-	(*Empty)(nil),         // 0: managerpb.Empty
-	(*ReadNodeQuery)(nil), // 1: managerpb.ReadNodeQuery
-	(*NodeInfo)(nil),      // 2: managerpb.NodeInfo
+	(*NodeInfo)(nil),       // 0: managerpb.NodeInfo
+	(*NodeHealth)(nil),     // 1: managerpb.NodeHealth
+	(*SuccessorQuery)(nil), // 2: managerpb.SuccessorQuery
+	(*ReadNodeQuery)(nil),  // 3: managerpb.ReadNodeQuery
+	(*emptypb.Empty)(nil),  // 4: google.protobuf.Empty
 }
 var file_manager_proto_depIdxs = []int32{
-	0, // 0: managerpb.Manager.GetWriteHead:input_type -> managerpb.Empty
-	1, // 1: managerpb.Manager.GetReadNode:input_type -> managerpb.ReadNodeQuery
-	2, // 2: managerpb.Manager.GetWriteHead:output_type -> managerpb.NodeInfo
-	2, // 3: managerpb.Manager.GetReadNode:output_type -> managerpb.NodeInfo
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	0, // 0: managerpb.Manager.RegisterNode:input_type -> managerpb.NodeInfo
+	2, // 1: managerpb.Manager.GetSuccessor:input_type -> managerpb.SuccessorQuery
+	1, // 2: managerpb.Manager.Heartbeat:input_type -> managerpb.NodeHealth
+	4, // 3: managerpb.Manager.GetWriteHead:input_type -> google.protobuf.Empty
+	3, // 4: managerpb.Manager.GetReadNode:input_type -> managerpb.ReadNodeQuery
+	4, // 5: managerpb.Manager.RegisterNode:output_type -> google.protobuf.Empty
+	0, // 6: managerpb.Manager.GetSuccessor:output_type -> managerpb.NodeInfo
+	4, // 7: managerpb.Manager.Heartbeat:output_type -> google.protobuf.Empty
+	0, // 8: managerpb.Manager.GetWriteHead:output_type -> managerpb.NodeInfo
+	0, // 9: managerpb.Manager.GetReadNode:output_type -> managerpb.NodeInfo
+	5, // [5:10] is the sub-list for method output_type
+	0, // [0:5] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -209,7 +296,7 @@ func file_manager_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_manager_proto_rawDesc), len(file_manager_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
