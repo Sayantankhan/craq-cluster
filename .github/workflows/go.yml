@@ -26,3 +26,12 @@ jobs:
 
     - name: Build - Manager
       run: go build -o craq-manager ./cmd/manager/main.go
+
+    - name: Upload to GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          craq-node
+          craq-manager
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
